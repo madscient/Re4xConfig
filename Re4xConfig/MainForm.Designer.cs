@@ -75,6 +75,7 @@
             this.button_Close.TabIndex = 0;
             this.button_Close.Text = "Close";
             this.button_Close.UseVisualStyleBackColor = true;
+            this.button_Close.Click += new System.EventHandler(this.button_Close_Click);
             // 
             // label1
             // 
@@ -108,6 +109,7 @@
             this.comboBox_Slots.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBox_Slots.FormattingEnabled = true;
             this.comboBox_Slots.Items.AddRange(new object[] {
+            "0",
             "1",
             "4"});
             this.comboBox_Slots.Location = new System.Drawing.Point(347, 12);

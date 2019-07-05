@@ -57,26 +57,15 @@ namespace Re4xConfig
                 if (theDevice != null)
                 {
                     Re4xEEPROM eeprom = new Re4xEEPROM();
-                    ushort eevalh = 0;
-                    ushort eevall = 0;
-                    theDevice.ReadEEPROMLocation(0xc0, ref eevalh);
-                    theDevice.ReadEEPROMLocation(0xc2, ref eevall);
-                    eeprom.Version = (uint)(((int)eevalh << 16) | (int)eevall);
-                    theDevice.ReadEEPROMLocation(0xc4, ref eevalh);
-                    theDevice.ReadEEPROMLocation(0xc6, ref eevall);
-                    eeprom.Slots = (uint)(((int)eevalh << 16) | (int)eevall);
+                    eeprom.Version = ReadEEPROMLong(theDevice, 0xc0);
+                    eeprom.Slots = ReadEEPROMLong(theDevice, 0xc4);
                     for (uint i=0; i<4; i++)
                     {
+                        uint offset = i * 12;
                         eeprom.SlotInfo[i] = new Re4xSlotInfo();
-                        theDevice.ReadEEPROMLocation(0xc8 + (i * 12), ref eevalh);
-                        theDevice.ReadEEPROMLocation(0xca + (i * 12), ref eevall);
-                        eeprom.SlotInfo[i].ModuleId = (Re4xModules)((uint)(((int)eevalh << 16) | (int)eevall));
-                        theDevice.ReadEEPROMLocation(0xcc + (i * 12), ref eevalh);
-                        theDevice.ReadEEPROMLocation(0xce + (i * 12), ref eevall);
-                        eeprom.SlotInfo[i].Clock = (uint)(((int)eevalh << 16) | (int)eevall);
-                        theDevice.ReadEEPROMLocation(0xd0 + (i * 12), ref eevalh);
-                        theDevice.ReadEEPROMLocation(0xd2 + (i * 12), ref eevall);
-                        eeprom.SlotInfo[i].Location = (uint)(((int)eevalh << 16) | (int)eevall);
+                        eeprom.SlotInfo[i].ModuleId = (Re4xModules)ReadEEPROMLong(theDevice, 0xc8 + offset);
+                        eeprom.SlotInfo[i].Clock = ReadEEPROMLong(theDevice, 0xcc + offset);
+                        eeprom.SlotInfo[i].Location = (Re4xLocation)ReadEEPROMLong(theDevice, 0xd0 + offset);
                     }
                     return eeprom;
                 }
@@ -86,48 +75,60 @@ namespace Re4xConfig
         public enum Re4xModules
         {
             NONE = 0x00,
-            YM2149 = 0x2149,
-            YM2151 = 0x2151,
-            YM2163 = 0x2163,
-            YM2164 = 0x2164,
-            YM2203 = 0x2203,
-            YM2413 = 0x2413,
-            YM2420 = 0x2420,
-            YM2423 = 0x2423,
-            YM2414 = 0x2414,
-            YM2602 = 0x2602,
-            YM2608 = 0x2608,
-            YM2610 = 0x2610,
-            YM2610B = 0x2610b,
-            YM2612 = 0x2612,
-            YM3438 = 0x3438,
-            YM3526 = 0x3526,
-            YM3801 = 0x3801,
-            YM3812 = 0x3812,
-            YM7116 = 0x7116,
-            YM7129 = 0x7129,
-            YMF262 = 0xf262,
-            YMF264 = 0xf264,
-            YMF278 = 0xf278,
-            YMF276 = 0xf276,
-            YMF281 = 0xf281,
-            YMF288 = 0xf288,
-            YMZ294 = 0xf294,
-            SN76489 = 0x76489,
-            SN76496 = 0x76496,
-            SAA1099 = 0x1099,
-            AY8910 = 0x8910,
-            AY8912 = 0x8912,
-            AY8913 = 0x8913,
-            AY8930 = 0x8930,
-            SCC = 0x2212,
-            SCCS = 0x2312,
+            YM2149 = 0x2149,    //SSG
+            YM2151 = 0x2151,    //OPM
+            YM2163 = 0x2163,    //DSG
+            YM2164 = 0x2164,    //OPP
+            YM2203 = 0x2203,    //OPN
+            YM2413 = 0x2413,    //OPLL
+            YM2420 = 0x2420,    //OPLL2
+            YM2423 = 0x2423,    //OPLL-X
+            YM2414 = 0x2414,    //OPZ
+            YM2602 = 0x2602,    //315-5124
+            YM2608 = 0x2608,    //OPNA
+            YM2612 = 0x2612,    //OPN2
+            YM3438 = 0x3438,    //OPN2C
+            YM3526 = 0x3526,    //OPL
+            YM3801 = 0x3801,    //Y8950
+            YM3812 = 0x3812,    //OPL2
+            YM7116 = 0x7116,    //OPK
+            YM7129 = 0x7129,    //OPK2
+            YMF262 = 0xf262,    //OPL3
+            YMF264 = 0xf264,    //OPNC
+            YMF276 = 0xf276,    //OPN2L
+            YMF281 = 0xf281,    //OPLLP
+            YMF288 = 0xf288,    //OPN3L
+            YMZ294 = 0xf294,    //SSGLP
+            YMF709 = 0xf709,    //OPOS
+            SN76489 = 0x76489,  //DCSG
+            SN76496 = 0x76496,  //DCSG
+            SAA1099 = 0x1099,   //SAA
+            AY8910 = 0x8910,    //PSG
+            AY8912 = 0x8912,    //PSG
+            AY8913 = 0x8913,    //PSG
+            AY8930 = 0x8930,    //APSG
+            SCC = 0x2212,       //SCC
+            SCCS = 0x2312,      //SCC-I
+        };
+        public enum Re4xLocation
+        {
+            None = 0,
+            Left = 1,
+            Right = 2,
+            Both = 3,
+            Stereo = 4,
+        };
+        public enum Re4xSlotNumbers
+        {
+            None = 0,
+            _1Slot = 1,
+            _4Slot = 4,
         };
         public class Re4xSlotInfo
         {
             public Re4xModules ModuleId;
             public uint Clock;
-            public uint Location;
+            public Re4xLocation Location;
         };
         public class Re4xEEPROM
         {
@@ -135,6 +136,16 @@ namespace Re4xConfig
             public uint Slots;
             public Re4xSlotInfo[] SlotInfo = new Re4xSlotInfo[4];
         };
+        public static uint ReadEEPROMLong(FTDI dev, uint address)
+        {
+            uint ret = 0;
+            ushort eevalh = 0;
+            ushort eevall = 0;
+            dev.ReadEEPROMLocation(address, ref eevalh);
+            dev.ReadEEPROMLocation(address + 0x02, ref eevall);
+            ret = (uint)(((int)eevalh << 16) | (int)eevall);
+            return ret;
+        }
         public static List<Re4xDevice> GetRe4xDeviceList()
         {
             UInt32 ftdiDeviceCount = 0;
