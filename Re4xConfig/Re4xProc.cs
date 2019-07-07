@@ -71,6 +71,22 @@ namespace Re4xConfig
                 }
                 return null;
             }
+            public void WriteEEPROM(Re4xEEPROM eeprom)
+            {
+                if (theDevice != null)
+                {
+                    eeprom.Version = 0x00010000;
+                    WriteEEPROMLong(theDevice, 0xc0, eeprom.Version);
+                    WriteEEPROMLong(theDevice, 0xc4, eeprom.Slots);
+                    for (uint i = 0; i < 4; i++)
+                    {
+                        uint offset = i * 12;
+                        WriteEEPROMLong(theDevice, 0xc8 + offset, (uint)eeprom.SlotInfo[i].ModuleId);
+                        WriteEEPROMLong(theDevice, 0xcc + offset, eeprom.SlotInfo[i].Clock);
+                        WriteEEPROMLong(theDevice, 0xd0 + offset, (uint)eeprom.SlotInfo[i].Location);
+                    }
+                }
+            }
         };
         public enum Re4xModules
         {
@@ -115,8 +131,9 @@ namespace Re4xConfig
             None = 0,
             Left = 1,
             Right = 2,
-            Both = 3,
-            Stereo = 4,
+            Mono = 3,
+            Both = 4,
+            Stereo = 5,
         };
         public enum Re4xSlotNumbers
         {
@@ -145,6 +162,13 @@ namespace Re4xConfig
             dev.ReadEEPROMLocation(address + 0x02, ref eevall);
             ret = (uint)(((int)eevalh << 16) | (int)eevall);
             return ret;
+        }
+        public static void WriteEEPROMLong(FTDI dev, uint address, uint data)
+        {
+            ushort eevalh = (ushort)(data >> 16);
+            ushort eevall = (ushort)(data & 0xffff);
+            dev.WriteEEPROMLocation(address, eevalh);
+            dev.WriteEEPROMLocation(address + 0x02, eevall);
         }
         public static List<Re4xDevice> GetRe4xDeviceList()
         {

@@ -21,6 +21,9 @@ namespace Re4xConfig
             public ComboBox location;
         }
         private ModulesCombo[] modulesCombo = new ModulesCombo[4];
+        private Re4xProc.Re4xDevice theDevice = null;
+        private Re4xProc.Re4xEEPROM theEeprom = null;
+
         public MainForm()
         {
             InitializeComponent();
@@ -48,21 +51,48 @@ namespace Re4xConfig
                 clock = comboBox_clock3,
                 location = comboBox_location3,
             };
+            foreach(ModulesCombo mc in modulesCombo)
+            {
+                mc.chip.DataSource = Enum.GetNames(typeof(Re4xProc.Re4xModules));
+                mc.location.DataSource = Enum.GetNames(typeof(Re4xProc.Re4xLocation));
+            }
         }
 
         private void button_Reload_Click(object sender, EventArgs e)
         {
-
+            if (theDevice != null)
+            {
+                theDevice.Close();
+                theDevice = null;
+            }
+            if (theEeprom != null)
+            {
+                theEeprom = null;
+            }
+            comboBox_Interfaces.DataSource = null;
+            comboBox_Interfaces.Items.Clear();
+            MainForm_Load(sender, e);
         }
 
         private void button_Apply_Click(object sender, EventArgs e)
         {
-
+            if (theDevice != null && theEeprom != null)
+            {
+                theEeprom.Version = 0x00010000;
+                uint.TryParse(comboBox_Slots.SelectedItem.ToString(), out theEeprom.Slots);
+                for (int i=0; i<4; i++)
+                {
+                    Enum.TryParse<Re4xProc.Re4xModules>(modulesCombo[i].chip.SelectedItem.ToString(), out theEeprom.SlotInfo[i].ModuleId);
+                    string strclock = (modulesCombo[i].clock.SelectedItem != null) ? modulesCombo[i].clock.SelectedItem.ToString() : modulesCombo[i].clock.Text;
+                    uint.TryParse(strclock, out theEeprom.SlotInfo[i].Clock);
+                    Enum.TryParse<Re4xProc.Re4xLocation>(modulesCombo[i].location.SelectedItem.ToString(), out theEeprom.SlotInfo[i].Location);
+                }
+                theDevice.WriteEEPROM(theEeprom);
+            }
         }
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            comboBox_Interfaces.Items.Clear();
             comboBox_Interfaces.DataSource = Re4xProc.GetRe4xDeviceList();
 
             if (comboBox_Interfaces.Items.Count == 0)
@@ -73,35 +103,55 @@ namespace Re4xConfig
             else
             {
                 comboBox_Interfaces.SelectedIndex = 0;
+                comboBox_Interfaces_SelectionChangeCommitted(sender, e);
             }
         }
 
         private void comboBox_Interfaces_SelectionChangeCommitted(object sender, EventArgs e)
         {
-            if (comboBox_Interfaces.Items.Count == 0)
+            if (comboBox_Interfaces.Items.Count != 0)
             {
-                Re4xProc.Re4xDevice dev = comboBox_Interfaces.SelectedItem as Re4xProc.Re4xDevice;
-                if (dev != null)
+                if (theDevice != null)
                 {
-                    Re4xProc.Re4xEEPROM eeprom = dev.ReadEEPROM();
-                    if (eeprom != null)
-                    {
-                        if (eeprom.Slots == 1 || eeprom.Slots == 4)
-                        {
-                            comboBox_Slots.SelectedItem = eeprom.Slots.ToString();
-                        } else
-                        {
-                            comboBox_Slots.SelectedIndex = 0;   //default selection
-                        }
-                    }
+                    theDevice.Close();
+                }
+                theDevice = comboBox_Interfaces.SelectedItem as Re4xProc.Re4xDevice;
+                if (theDevice != null)
+                {
+                    theDevice.Open();
+                    theEeprom = theDevice.ReadEEPROM();
+                    RefreshEnable();
                 }
             }
+        }
 
+        private void RefreshEnable()
+        {
+            comboBox_Slots.Enabled = (theDevice != null);
+            if (theEeprom != null)
+            {
+                comboBox_Slots.SelectedIndex = comboBox_Slots.Items.IndexOf(theEeprom.Slots.ToString());
+            }
+            if (comboBox_Slots.SelectedIndex < 0)
+            {
+                comboBox_Slots.SelectedIndex = 0;
+            }
+            comboBox_Slots_SelectionChangeCommitted(null, null);
         }
 
         private void comboBox_Slots_SelectionChangeCommitted(object sender, EventArgs e)
         {
-
+            int numslots = (comboBox_Slots.SelectedIndex >= 0) ? int.Parse(comboBox_Slots.SelectedItem.ToString()) : 0;
+            for (int i = 0; i < 4; i++)
+            {
+                modulesCombo[i].chip.Enabled = modulesCombo[i].clock.Enabled = modulesCombo[i].location.Enabled = i < numslots;
+                if (theEeprom != null)
+                {
+                    modulesCombo[i].chip.SelectedIndex = Array.IndexOf(Enum.GetValues(typeof(Re4xProc.Re4xModules)), theEeprom.SlotInfo[i].ModuleId);
+                    modulesCombo[i].clock.SelectedItem = theEeprom.SlotInfo[i].Clock.ToString();
+                    modulesCombo[i].location.SelectedIndex = Array.IndexOf(Enum.GetValues(typeof(Re4xProc.Re4xLocation)), theEeprom.SlotInfo[i].Location);
+                }
+            }
         }
 
         private void button_Close_Click(object sender, EventArgs e)
