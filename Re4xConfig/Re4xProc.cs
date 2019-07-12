@@ -116,6 +116,8 @@ namespace Re4xConfig
             YMF288 = 0xf288,    //OPN3L
             YMZ294 = 0xf294,    //SSGLP
             YMF709 = 0xf709,    //OPOS
+            YMZ705 = 0xf705,    //SSGS
+            YMZ735 = 0xf735,    //FMS
             SN76489 = 0x76489,  //DCSG
             SN76496 = 0x76496,  //DCSG
             SAA1099 = 0x1099,   //SAA
